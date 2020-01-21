@@ -86,7 +86,7 @@ class DenseRepPointsMaskDetector(SingleStageDetector):
                     rle_result.append(rle_seg)
                 rle_results.append(rle_result)
 
-        return (bbox_results, rle_results), pts_results
+        return bbox_results, rle_results
 
     def get_seg_masks(self, pts_score, det_pts, det_bboxes, det_labels, test_cfg,
                       ori_shape, scale_factor, rescale=False):
