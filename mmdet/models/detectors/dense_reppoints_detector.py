@@ -35,7 +35,6 @@ class DenseRepPointsMaskDetector(SingleStageDetector):
         x = self.extract_feat(img)
         outs = self.bbox_head(x, test=False)
         loss_inputs = outs + (gt_bboxes, gt_masks, gt_labels, img_metas, self.train_cfg)
-        # self.bbox_head.show_train(img, *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
         losses = self.bbox_head.loss(
             *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
         return losses
@@ -70,13 +69,13 @@ class DenseRepPointsMaskDetector(SingleStageDetector):
         #     for det_bbox, det_pts, det_masks, det_labels in bbox_list
         # ][0]
         if True:
-            rle_results = [
+            segm_results = [
                self.get_seg_masks(det_masks[:, :-1], det_pts[:, :-1], det_bbox, det_labels, self.test_cfg,
                                            ori_shape, scale_factor, rescale)
                for i, (det_bbox, det_pts, det_masks, det_labels) in enumerate(bbox_list)
             ][0]
         else:
-            rle_results = []
+            segm_results = []
             for i_class in range(len(pts_results)):
                 rle_result = []
                 for i_seg in range(len(pts_results[i_class])):
@@ -86,7 +85,7 @@ class DenseRepPointsMaskDetector(SingleStageDetector):
                     rle_result.append(rle_seg)
                 rle_results.append(rle_result)
 
-        return bbox_results, rle_results
+        return (bbox_results, segm_results), pts_results
 
     def get_seg_masks(self, pts_score, det_pts, det_bboxes, det_labels, test_cfg,
                       ori_shape, scale_factor, rescale=False):
@@ -163,44 +162,6 @@ class DenseRepPointsMaskDetector(SingleStageDetector):
         # print('core time per bbox: {:.5f}'.format(core_time_count / bboxes.shape[0]))
         # print('mask time per bbox: {:.5f}'.format((end_t - start_t) / bboxes.shape[0]))
         return cls_segms
-
-
-
-    def heatmap_seg(self, pts_seg, img_meta, rescale, img, vis=False):
-        import matplotlib.pyplot as plt
-
-        if rescale:
-            h, w = img_meta['ori_shape'][0], img_meta['ori_shape'][1]
-        else:
-            h, w = img_meta['img_shape'][0], img_meta['img_shape'][1]
-        sigma = 2
-        im_mask = np.zeros((h, w), dtype=np.uint8)
-        proposal_l = int(pts_seg[:, 0].min())
-        proposal_r = int(pts_seg[:, 0].max())
-        proposal_u = int(pts_seg[:, 1].min())
-        proposal_b = int(pts_seg[:, 1].max())
-        proposal_w = proposal_r - proposal_l + 1
-        proposal_h = proposal_b - proposal_u + 1
-        pts_in_box_x = (pts_seg[:, 0] - proposal_l) / max(proposal_w - 1, 1) * 27
-        pts_in_box_y = (pts_seg[:, 1] - proposal_u) / max(proposal_h - 1, 1) * 27
-        pts_in_box = np.stack([pts_in_box_x, pts_in_box_y], -1)
-        heatmap = make_heatmap((28, 28), pts_in_box, sigma).cpu().numpy()
-        heatmap = mmcv.imresize(heatmap, (proposal_w, proposal_h))
-        heatmap = (heatmap > 0.5).astype(np.uint8)
-        # img_norm_cfg = dict(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
-        # img_np = tensor2imgs(img, **img_norm_cfg)[0]
-        # roi = img_np[proposal_u:proposal_u + proposal_h, proposal_l:proposal_l + proposal_w]
-        # heatmap = self.dense_crf(heatmap, roi)
-        im_mask[proposal_u:proposal_u + proposal_h, proposal_l:proposal_l + proposal_w] = heatmap
-
-        # size = int(np.sqrt(proposal_w**2+proposal_w**2)/np.sqrt(self.seg_head.num_pts))
-        # d_kernel = np.ones((size,size),np.uint8)
-        # e_size = int(1.1*size)
-        # e_kernel = np.ones((e_size,e_size),np.uint8)
-        # mask = cv2.dilate(mask, d_kernel)
-        # mask = cv2.erode(mask, e_kernel)
-        rle = maskUtils.encode(np.array(im_mask[:, :, np.newaxis], order='F'))[0]
-        return rle
 
     def merge_aug_results(self, aug_bboxes, aug_scores, img_metas):
         """Merge augmented detection bboxes and scores.

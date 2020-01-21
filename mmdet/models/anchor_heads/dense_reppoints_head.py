@@ -322,15 +322,6 @@ class DenseRepPointsMaskHead(nn.Module):
         feature = feature.max(dim=1)[0]  # (b, C, h, w)
         return feature
 
-    def forward_mask_sample_feat_head(self, x, pts, mask_feat):
-        b, _, h, w = x.shape
-        # _pts_reshape = pts.view(b, -1, 2, h, w).view(-1, 2, h, w) # (b*n, 2, h, w)
-        mask_pts_feature = self.compute_offset_feature(mask_feat, pts, padding_mode='border') # (b, n, C, H, W)
-        mask_pts_feature = mask_pts_feature.view(b * self.num_points, -1, h, w)
-        pts_score_out_init = self.reppoints_mask_score_out(self.relu(self.reppoints_mask_score_conv(mask_pts_feature)))
-        pts_score_out_init = pts_score_out_init.view(b, -1, h, w)
-        return pts_score_out_init
-
     def forward_mask_head(self, x, pts, mask_feat):
         b, _, h, w = x.shape
         mask_refine_field = self.reppoints_mask_init_out(
@@ -729,111 +720,6 @@ class DenseRepPointsMaskHead(nn.Module):
                          'losses_mask_refine': losses_mask_refine,
                          'losses_mask_score_init': losses_mask_score_init}
         return loss_dict_all
-
-    def show_train(self,
-                   imgs,
-                   cls_scores,
-                   pts_preds_init,
-                   pts_preds_refine,
-                   gt_bboxes,
-                   gt_masks,
-                   gt_labels,
-                   img_metas,
-                   cfg,
-                   gt_bboxes_ignore=None):
-        img_norm_cfg = dict(
-            mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
-        # show only first image
-        imgs = tensor2imgs(imgs, **img_norm_cfg)
-
-        featmap_sizes = [featmap.size()[-2:] for featmap in cls_scores]
-        assert len(featmap_sizes) == len(self.point_generators)
-        label_channels = self.cls_out_channels if self.use_sigmoid_cls else 1
-
-        # target for initial stage
-        proposal_list, valid_flag_list = self.get_points(featmap_sizes, img_metas)
-        # real_pts_preds_init = self.proposal_to_pts(proposal_list, pts_preds_init, y_first=False)
-        show_proposal_list = self.centers_to_bboxes(proposal_list)
-        if cfg.init.assigner['type'] != 'PointAssigner':
-            proposal_list = self.centers_to_bboxes(proposal_list)
-        cls_reg_targets_init = point_mask_target(
-            proposal_list,
-            valid_flag_list,
-            gt_bboxes,
-            gt_masks,
-            img_metas,
-            cfg.init,
-            gt_bboxes_ignore_list=gt_bboxes_ignore,
-            gt_labels_list=gt_labels,
-            label_channels=label_channels,
-            sampling=self.sampling,
-            num_pts=self.num_points)
-        (*_, bbox_gt_list_init, mask_gt_list_init, proposal_list_init,
-         bbox_weights_list_init, num_total_pos_init, num_total_neg_init) = cls_reg_targets_init
-        num_total_samples_init = (num_total_pos_init + num_total_neg_init if self.sampling else num_total_pos_init)
-
-        bboxes_pos = []
-        for lvl in range(len(mask_gt_list_init)):
-            bbox_pos = []
-            for i in range(len(show_proposal_list)):
-                bbox_pos.append(show_proposal_list[i][lvl])
-            bbox_pos = torch.stack(bbox_pos, 0)
-            bboxes_pos.append(bbox_pos)
-        bboxes_pos = torch.cat(bboxes_pos, 1)
-        bboxes_pos_gt = torch.cat(bbox_gt_list_init, 1)
-        masks_pos = torch.cat(mask_gt_list_init, 1)
-        bboxes_weights = torch.cat(bbox_weights_list_init, 1)
-
-        assert len(imgs) == len(img_metas)
-        red = (0, 0, 255)
-        colors = [(0, 0, 255), (0, 255, 255), (0, 255, 0), (255, 0, 0)]
-        green = (0, 255, 0)
-        for i, (img, img_meta) in enumerate(zip(imgs, img_metas)):
-            h, w, _ = img_meta['img_shape']
-            img_show = img[:h, :w, :]
-            gt_bbox = gt_bboxes[i].cpu().numpy()
-            pos_bbox = bboxes_pos[i]
-            gt_pos_bbox = bboxes_pos_gt[i]
-            pos_mask = masks_pos[i]
-            pos_bbox_weight = bboxes_weights[i]
-            pos_bbox = pos_bbox[pos_bbox_weight[:, 0] > 0, :].cpu().numpy()
-            gt_pos_bbox = gt_pos_bbox[pos_bbox_weight[:, 0] > 0, :].cpu().numpy()
-            pos_mask = pos_mask[pos_bbox_weight[:, 0] > 0, :].cpu().numpy()
-            img_show = imread(img_show)
-            for bbox in gt_bbox:
-                bbox_int = bbox.astype(np.int32)
-                left_top = (bbox_int[0], bbox_int[1])
-                right_bottom = (bbox_int[2], bbox_int[3])
-                cv2.rectangle(
-                    img_show, left_top, right_bottom, green, thickness=3)
-            for (gt, bbox, mask) in zip(gt_pos_bbox, pos_bbox, pos_mask):
-                r_color = (np.random.randint(0, 256), np.random.randint(0, 256), np.random.randint(0, 256))
-                gt_int = gt.astype(np.int32)
-                # bbox_int = bbox.astype(np.int32)
-                # left_top = (bbox_int[0], bbox_int[1])
-                # right_bottom = (bbox_int[2], bbox_int[3])
-                # cv2.rectangle(
-                #     img_show, left_top, right_bottom, r_color, thickness=3)
-                for i in range(int(mask.shape[0] / 2)):
-                    if i < 4:
-                        color = colors[i]
-                    else:
-                        color = r_color
-                    cv2.circle(img, (mask[2 * i], mask[2 * i + 1]), 2, color, thickness=-1)
-                sigma = 2
-                im_mask = np.zeros((h, w), dtype=np.bool)
-                roi_w, roi_h = gt_int[2] - gt_int[0] + 1, gt_int[3] - gt_int[1] + 1
-                mask_in_box_x = (mask[0::2] - gt_int[0]) / max(roi_w - 1, 1) * 27
-                mask_in_box_y = (mask[1::2] - gt_int[1]) / max(roi_h - 1, 1) * 27
-                mask_in_box = np.stack([mask_in_box_x, mask_in_box_y], -1)
-                heatmap = make_heatmap((28, 28), mask_in_box, sigma).cpu().numpy()
-                heatmap = mmcv.imresize(heatmap, (roi_w, roi_h))
-                heatmap = (heatmap > 0.5).astype(np.bool)
-                im_mask[gt_int[1]:gt_int[1] + roi_h, gt_int[0]:gt_int[0] + roi_w] = heatmap
-                color_mask = np.array(r_color).reshape(1, 3)
-                img_show[im_mask] = img_show[im_mask] * 0.5 + color_mask * 0.5
-            cv2.imshow('', imread(img_show))
-            cv2.waitKey(0)
 
     def get_bboxes(self, cls_scores, pts_preds_init, pts_preds_refine,  pts_preds_score_refine, img_metas, cfg,
                    rescale=False, nms=True):
