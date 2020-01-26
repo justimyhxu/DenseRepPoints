@@ -3,8 +3,6 @@ import torch
 from ..bbox import assign_and_sample, build_assigner, PseudoSampler
 from ..utils import multi_apply
 import numpy as np
-import mmcv
-from .sample_pts import sample_foreground, sample_uniform, sample_dist, sample_contour
 
 def point_mask_score_target(proposals_list,
                       proposals_pts_list,

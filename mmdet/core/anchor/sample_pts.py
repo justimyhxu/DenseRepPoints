@@ -34,15 +34,12 @@ def sample_foreground(gt_bboxes, gt_masks, cfg, num_pts,):
             if _len == 0:
                 pts = np.zeros([2*num_pts])
             else:
-                extremes = extreme_points(index)
                 repeat = num_pts//_len
                 mod = num_pts % _len
                 perm = np.random.choice(_len, mod, replace=False)
                 draw = [index.copy() for i in range(repeat)]
                 draw.append(index[perm])
                 draw = np.concatenate(draw, 0)
-                num_extreme = min(_len, 4)
-                # draw[:num_extreme] = extremes[:num_extreme]
                 draw = draw + np.random.rand(*draw.shape)
                 x_scale = float(w) / cfg.mask_size
                 y_scale = float(h) / cfg.mask_size
@@ -142,9 +139,7 @@ def polygon_len(polygon):
 def sample_contour(gt_bboxes, gt_masks, cfg, num_pts):
     pts_list = []
     pts_label_list = []
-    # assert len(gt_bboxes) == len(gt_masks)
     for i in range(len(gt_bboxes)):
-        x1, y1, x2, y2 = gt_bboxes[i].cpu().numpy().astype(np.int32)
         polygons = mask_to_poly(gt_masks[i])
         if len(polygons) == 0:
             pts = np.zeros([2 * num_pts], np.float64)
@@ -157,16 +152,6 @@ def sample_contour(gt_bboxes, gt_masks, cfg, num_pts):
             for poly_numlen, polygon in zip(polynums_num, polygons):
                 fuse_polygon.append(sample_on_polygon(polygon, poly_numlen))
             pts = np.concatenate(fuse_polygon)
-            if False:
-                import matplotlib.pyplot as plt
-                plt.imshow(gt_masks[i])
-                plt.show()
-                _mask = np.zeros(gt_masks[i].shape)
-                pts_long = pts.astype(np.long).reshape(-1,2)
-                for pt in pts_long:
-                    cv2.circle(_mask, (pt[0], pt[1]), 3, 255, 2)
-                plt.imshow(_mask)
-                plt.show()
 
         pts_list.append(pts)
         pts_long = pts.astype(np.long)
@@ -253,26 +238,15 @@ def sample_dist(gt_bboxes, gt_masks, cfg, num_pts):
             if len(con_index) == 0:
                 pts = np.zeros([2 * num_pts])
             else:
-                extremes = extreme_points(con_index)
                 repeat = num_pts // _len
                 mod = num_pts % _len
                 perm = np.random.choice(_len, mod, replace=False, p=prob_dist_map.reshape(-1))
                 draw = [index.copy() for i in range(repeat)]
                 draw.append(index[perm])
                 draw = np.concatenate(draw, 0)
-                num_extreme = min(_len, 4)
-                # draw[:num_extreme] = extremes[:num_extreme]
                 draw[:, 0] = draw[:, 0] + x1
                 draw[:, 1] = draw[:, 1] + y1
                 pts = draw.reshape(2 * num_pts)
-        if False:
-            import matplotlib.pyplot as plt
-            map = gt_masks[i]*255
-            for k in range(int(pts.shape[0] / 2)):
-                color = 125
-                cv2.circle(map, (int(pts[2 * k]), int(pts[2 * k + 1])), 2, color, thickness=5)
-            plt.imshow(map)
-            plt.show()
 
         pts_list.append(pts)
         pts_long = pts.astype(np.long)

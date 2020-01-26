@@ -1,8 +1,8 @@
 from .bbox_nms import multiclass_nms
 from .merge_augs import (merge_aug_bboxes, merge_aug_masks,
                          merge_aug_proposals, merge_aug_scores)
-from .triangulation import interplate_v5, interplate_v6
+from .triangulation import interplate
 __all__ = [
     'multiclass_nms', 'merge_aug_proposals', 'merge_aug_bboxes',
-    'merge_aug_scores', 'merge_aug_masks', 'interplate_v5', 'interplate_v6'
+    'merge_aug_scores', 'merge_aug_masks', 'interplate'
 ]

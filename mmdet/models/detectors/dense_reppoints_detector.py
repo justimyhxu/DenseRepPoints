@@ -1,6 +1,5 @@
 import torch
-import time
-from mmdet.core import bbox2result, bbox_mapping_back, multiclass_nms
+from mmdet.core import bbox2result
 from ..registry import DETECTORS
 from .single_stage import SingleStageDetector
 import numpy as np
@@ -9,7 +8,7 @@ from mmcv.image import imread, imwrite
 from mmdet.core import tensor2imgs, get_classes
 import mmcv
 from pycocotools import mask as maskUtils
-from mmdet.core.post_processing import interplate_v5, interplate_v6
+from mmdet.core.post_processing import interplate
 
 
 @DETECTORS.register_module
@@ -54,36 +53,18 @@ class DenseRepPointsMaskDetector(SingleStageDetector):
 
         ori_shape = img_meta[0]['ori_shape']
         scale_factor = img_meta[0]['scale_factor']
-        # import ipdb
-        # ipdb.set_trace()
         bbox_results = [
             bbox2result(det_bbox, det_labels, self.bbox_head.num_classes)
             for det_bbox, det_pts, det_masks, det_labels in bbox_list
         ][0]
         pts_results = [
             pts2result(det_points, det_cls_labels, self.bbox_head.num_classes)
-            # for det_pts,  det_labels in zip(det_points, det_cls_labels)
         ][0]
-        # masks_results = [
-        #     masks2result(det_masks, det_labels, self.bbox_head.num_classes)
-        #     for det_bbox, det_pts, det_masks, det_labels in bbox_list
-        # ][0]
-        if True:
-            segm_results = [
-               self.get_seg_masks(det_masks[:, :-1], det_pts[:, :-1], det_bbox, det_labels, self.test_cfg,
-                                           ori_shape, scale_factor, rescale)
-               for i, (det_bbox, det_pts, det_masks, det_labels) in enumerate(bbox_list)
-            ][0]
-        else:
-            segm_results = []
-            for i_class in range(len(pts_results)):
-                rle_result = []
-                for i_seg in range(len(pts_results[i_class])):
-                    pts_seg = pts_results[i_class][i_seg][:-1].reshape(-1, 3)
-                    pts_seg = pts_seg[:, :-1]
-                    rle_seg = self.heatmap_seg(pts_seg, img_meta[0], rescale, img)
-                    rle_result.append(rle_seg)
-                rle_results.append(rle_result)
+        segm_results = [
+           self.get_seg_masks(det_masks[:, :-1], det_pts[:, :-1], det_bbox, det_labels, self.test_cfg,
+                                       ori_shape, scale_factor, rescale)
+           for i, (det_bbox, det_pts, det_masks, det_labels) in enumerate(bbox_list)
+        ][0]
 
         return (bbox_results, segm_results), pts_results
 
@@ -118,107 +99,26 @@ class DenseRepPointsMaskDetector(SingleStageDetector):
 
         scale_factor = 1.0
 
-        # start_t = time.time()
-        # core_time_count = 0
         for i in range(bboxes.shape[0]):
             bbox = (bboxes[i, :] / scale_factor).astype(np.int32)
             label = labels[i]
             w = max(bbox[2] - bbox[0] + 1, 1)
             h = max(bbox[3] - bbox[1] + 1, 1)
-
-
-            # _pts_score = pts_score[i, 0].sigmoid()
             _pts_score = pts_score[i]
-
             im_mask = np.zeros((img_h, img_w), dtype=np.uint8)
-
             im_pts = det_pts[i].clone()
             im_pts = im_pts.reshape(-1, 2)
             im_pts[:, 0] = (im_pts[:, 0] - bbox[0]) * (28 - 1) / (w - 1)
             im_pts[:, 1] = (im_pts[:, 1] - bbox[1]) * (28 - 1) / (h - 1)
-
-            # im_pts[:, 0] = ((im_pts[:, 0] - bbox[0]+0.5) * (28) / (w)-0.5).clamp(0,w-1)
-            # im_pts[:, 1] = ((im_pts[:, 1] - bbox[1]+0.5) * (28) / (h)-0.5).clamp(0,h-1)
             im_pts_score = _pts_score
-
             _corner_mask_pred_ = torch.zeros(2, 2)
-
-            # core_start_t = time.time()
-            bbox_mask = interplate_v5(_corner_mask_pred_, im_pts.cpu(), im_pts_score.cpu(), (h, w)).numpy()
-            # core_end_t = time.time()
-            # core_time_count += core_end_t - core_start_t
-
+            bbox_mask = interplate(_corner_mask_pred_, im_pts.cpu(), im_pts_score.cpu(), (h, w)).numpy()
             bbox_mask = (bbox_mask > test_cfg.get('mask_thr_binary', 0.5)).astype(np.uint8)
-            # import matplotlib.pyplot as plt
-            # plt.imshow(bbox_mask)
-            # plt.show()
-
             im_mask[bbox[1]:bbox[1] + h, bbox[0]:bbox[0] + w] = bbox_mask
             rle = maskUtils.encode(
                 np.array(im_mask[:, :, np.newaxis], order='F'))[0]
             cls_segms[label - 1].append(rle)
-        # end_t = time.time()
-        # print()
-        # print('core time per bbox: {:.5f}'.format(core_time_count / bboxes.shape[0]))
-        # print('mask time per bbox: {:.5f}'.format((end_t - start_t) / bboxes.shape[0]))
         return cls_segms
-
-    def merge_aug_results(self, aug_bboxes, aug_scores, img_metas):
-        """Merge augmented detection bboxes and scores.
-
-        Args:
-            aug_bboxes (list[Tensor]): shape (n, 4*#class)
-            aug_scores (list[Tensor] or None): shape (n, #class)
-            img_shapes (list[Tensor]): shape (3, ).
-            rcnn_test_cfg (dict): rcnn test config.
-
-        Returns:
-            tuple: (bboxes, scores)
-        """
-        recovered_bboxes = []
-        for bboxes, img_info in zip(aug_bboxes, img_metas):
-            img_shape = img_info[0]['img_shape']
-            scale_factor = img_info[0]['scale_factor']
-            flip = img_info[0]['flip']
-            bboxes = bbox_mapping_back(bboxes, img_shape, scale_factor, flip)
-            recovered_bboxes.append(bboxes)
-        bboxes = torch.cat(recovered_bboxes, dim=0)
-        if aug_scores is None:
-            return bboxes
-        else:
-            scores = torch.cat(aug_scores, dim=0)
-            return bboxes, scores
-
-    def aug_test(self, imgs, img_metas, rescale=False):
-        # recompute feats to save memory
-        feats = self.extract_feats(imgs)
-
-        aug_bboxes = []
-        aug_scores = []
-        for x, img_meta in zip(feats, img_metas):
-            # only one image in the batch
-            # TODO more flexible
-            outs = self.bbox_head(x)
-            bbox_inputs = outs + (img_meta, self.test_cfg, False, False)
-            det_bboxes, det_scores = self.bbox_head.get_bboxes(*bbox_inputs)[0]
-            aug_bboxes.append(det_bboxes)
-            aug_scores.append(det_scores)
-
-        # after merging, bboxes will be rescaled to the original image size
-        merged_bboxes, merged_scores = self.merge_aug_results(
-            aug_bboxes, aug_scores, img_metas)
-        det_bboxes, det_labels = multiclass_nms(
-            merged_bboxes, merged_scores, self.test_cfg.score_thr,
-            self.test_cfg.nms, self.test_cfg.max_per_img)
-
-        if rescale:
-            _det_bboxes = det_bboxes
-        else:
-            _det_bboxes = det_bboxes.clone()
-            _det_bboxes[:, :4] *= img_metas[0][0]['scale_factor']
-        bbox_results = bbox2result(_det_bboxes, det_labels,
-                                   self.bbox_head.num_classes)
-        return bbox_results
 
     def show_result(self,
                     data,
@@ -355,10 +255,6 @@ def imshow_det_pts(img,
         bboxes = bboxes[inds, :]
         labels = labels[inds]
 
-    # colors_pts = [(255, 0, 0), (0, 255, 0), (0, 0, 255),
-    #               (255, 255, 0), (255, 0, 255), (0, 255, 255),
-    #               (127, 64, 0), (127, 0, 64), (0, 127, 64)]
-
     for pt, bbox, label in zip(pts, bboxes, labels):
         r_color = (np.random.randint(0, 256), np.random.randint(0, 256), np.random.randint(0, 256))
         pt_x = pt[0:-1:3]
@@ -399,7 +295,7 @@ def imshow(img, win_name='', wait_time=0):
 
 
 def make_heatmap(img_shape, pts, sigma=10):
-    """ Make the ground-truth for  landmark.
+    """ Make the ground-truth for landmark.
     img: the original color image
     labels: label with the Gaussian center(s) [[x0, y0],[x1, y1],...]
     sigma: sigma of the Gaussian.
@@ -409,17 +305,15 @@ def make_heatmap(img_shape, pts, sigma=10):
     pts = torch.tensor(pts).cuda()
     heatmap = make_gaussian((h, w), pts, sigma=sigma)  # (N, H, W)
     heatmap = heatmap.max(0)[0]  # (H, W)
-    # heatmap = heatmap.sum(0)  # (H, W)
     return heatmap
 
 
-def make_gaussian(size, pts, sigma=1, use_gpu=True):
+def make_gaussian(size, pts, sigma=1):
     """ Make a square gaussian kernel.
     size: is the dimensions of the output gaussian
     sigma: is full-width-half-maximum, which
     can be thought of as an effective radius.
     """
-
     x = torch.arange(0, size[1], 1, dtype=torch.float32).cuda()
     y = torch.arange(0, size[0], 1, dtype=torch.float32).cuda()
     x = x.unsqueeze(0).unsqueeze(0)
