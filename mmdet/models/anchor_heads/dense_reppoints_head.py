@@ -390,10 +390,6 @@ class DenseRepPointsMaskHead(nn.Module):
             pts_out_init_detach = pts_out_refine
 
         pts_score_out_init = self.forward_mask_head(x, pts_out_init_detach, mask_feat)
-        pts_out_init = (1 - self.pts_offset_gradient_mul) * pts_out_init.detach() + \
-                       self.pts_offset_gradient_mul * pts_out_init
-        pts_out_refine = (1 - self.pts_offset_gradient_mul) * pts_out_refine.detach() + \
-                         self.pts_offset_gradient_mul * pts_out_refine
         return cls_out, pts_out_init, pts_out_refine, pts_score_out_init
 
     def forward(self, feats, test=False):
