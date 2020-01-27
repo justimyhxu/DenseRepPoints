@@ -152,7 +152,7 @@ total_epochs = 12
 device_ids = range(8)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/dense_reppoints_r50_225pts_wc_grid_sparse9_mask8_partial_fpn_1x'
+work_dir = './work_dirs/dense_reppoints_r50_225pts_grid_sparse9_partial_fpn_1x'
 load_from = None
 resume_from = None
 auto_resume = True
