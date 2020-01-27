@@ -143,7 +143,7 @@ if __name__ == '__main__':
         setup_requires=['pytest-runner', 'cython', 'numpy'],
         tests_require=['pytest'],
         install_requires=[
-            'mmcv>=0.2.10', 'numpy', 'matplotlib', 'six', 'terminaltables',
+            'mmcv<=0.2.14', 'numpy', 'matplotlib', 'six', 'terminaltables',
             'pycocotools', 'torch>=1.1', 'imagecorruptions'
         ],
         ext_modules=[
