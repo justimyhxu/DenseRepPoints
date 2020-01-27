@@ -3,20 +3,22 @@ import torch
 from ..bbox import assign_and_sample, build_assigner, PseudoSampler
 from ..utils import multi_apply
 import numpy as np
+from .sample_pts import sample_foreground, sample_uniform, sample_dist, sample_contour
+
 
 def point_mask_score_target(proposals_list,
-                      proposals_pts_list,
-                      valid_flag_list,
-                      gt_bboxes_list,
-                      gt_masks_list,
-                      img_metas,
-                      cfg,
-                      gt_bboxes_ignore_list=None,
-                      gt_labels_list=None,
-                      label_channels=1,
-                      sampling=True,
-                      unmap_outputs=True,
-                      num_pts=49,):
+                            proposals_pts_list,
+                            valid_flag_list,
+                            gt_bboxes_list,
+                            gt_masks_list,
+                            img_metas,
+                            cfg,
+                            gt_bboxes_ignore_list=None,
+                            gt_labels_list=None,
+                            label_channels=1,
+                            sampling=True,
+                            unmap_outputs=True,
+                            num_pts=49, ):
     """Compute refinement and classification targets for points.
 
     Args:
@@ -30,7 +32,7 @@ def point_mask_score_target(proposals_list,
         tuple
     """
     num_imgs = len(img_metas)
-    assert len(proposals_list) == len(valid_flag_list) ==  len(proposals_pts_list) == num_imgs
+    assert len(proposals_list) == len(valid_flag_list) == len(proposals_pts_list) == num_imgs
 
     # points number of multi levels
     num_level_proposals = [points.size(0) for points in proposals_list[0]]
@@ -122,10 +124,11 @@ def mask_to_levels(target, mask_index_list):
         for i in range(mask_index_list[lvl].shape[0]):
             index = mask_index_list[lvl][i]
             index = index[index > 0]
-            mask_gt_lvl = target[i][index-1]
+            mask_gt_lvl = target[i][index - 1]
             mask_gt_lvl_list.append(mask_gt_lvl)
         target_gt_list.append(mask_gt_lvl_list)
     return target_gt_list
+
 
 def extreme_points(index):
     inds_x, inds_y = index[:, 0], index[:, 1]
@@ -150,19 +153,18 @@ def get_pos_index(mask, bbox):
     return pos_index
 
 
-
 def point_mask_score_target_single(flat_proposals,
-                             flat_proposals_pts,
-                             valid_flags,
-                             gt_bboxes,
-                             gt_masks,
-                             gt_bboxes_ignore,
-                             gt_labels,
-                             cfg,
-                             label_channels=1,
-                             sampling=True,
-                             unmap_outputs=True,
-                             num_pts=49):
+                                   flat_proposals_pts,
+                                   valid_flags,
+                                   gt_bboxes,
+                                   gt_masks,
+                                   gt_bboxes_ignore,
+                                   gt_labels,
+                                   cfg,
+                                   label_channels=1,
+                                   sampling=True,
+                                   unmap_outputs=True,
+                                   num_pts=49):
     inside_flags = valid_flags
     if not inside_flags.any():
         return (None,) * 8
@@ -192,11 +194,10 @@ def point_mask_score_target_single(flat_proposals,
         gt_mask = gt_masks[gt_ind[i]]
         h, w = gt_mask.shape
         pts_long = proposals_pos_pts[i]
-        _pts_label = gt_mask[pts_long[1::2].clip(0, h-1), pts_long[0::2].clip(0, w-1)]
+        _pts_label = gt_mask[pts_long[1::2].clip(0, h - 1), pts_long[0::2].clip(0, w - 1)]
         pts_label_list.append(_pts_label)
     pts_label = np.stack(pts_label_list, 0)
     del proposals_pos_pts
-
 
     if len(gt_ind) != 0:
         gt_pts = gt_bboxes.new_tensor(pts)
@@ -212,7 +213,7 @@ def point_mask_score_target_single(flat_proposals,
     bbox_gt = proposals.new_zeros([num_valid_proposals, 4])
     mask_gt = proposals.new_zeros([0, num_pts * 2])
     mask_gt_label = proposals.new_zeros([0, num_pts]).long()
-    mask_gt_index = proposals.new_zeros([num_valid_proposals,], dtype=torch.long)
+    mask_gt_index = proposals.new_zeros([num_valid_proposals, ], dtype=torch.long)
     pos_proposals = torch.zeros_like(proposals)
     proposals_weights = proposals.new_zeros([num_valid_proposals, 4])
     labels = proposals.new_zeros(num_valid_proposals, dtype=torch.long)
