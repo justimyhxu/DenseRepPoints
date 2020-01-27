@@ -637,7 +637,7 @@ class DenseRepPointsMaskHead(nn.Module):
         for i_img, point in enumerate(proposal_list):
             bbox = []
             for i_lvl in range(len(pts_preds_refine)):
-                bbox_preds_init = self.transform_box(pts_preds_init[i_lvl].detach(), y_first=False)
+                bbox_preds_init = self.points2bbox(pts_preds_init[i_lvl].detach(), y_first=False)
                 bbox_shift = bbox_preds_init * self.point_strides[i_lvl]
                 bbox_center = torch.cat([point[i_lvl][:, :2], point[i_lvl][:, :2]], dim=1)
                 bbox.append(bbox_center + bbox_shift[i_img].permute(1, 2, 0).contiguous().view(-1, 4))
@@ -692,7 +692,7 @@ class DenseRepPointsMaskHead(nn.Module):
     def get_bboxes(self, cls_scores, pts_preds_init, pts_preds_refine, pts_preds_score_refine, img_metas, cfg,
                    rescale=False, nms=True):
         assert len(cls_scores) == len(pts_preds_refine)
-        bbox_preds_refine = [self.transform_box(pts_pred_refine, y_first=False) for pts_pred_refine in pts_preds_refine]
+        bbox_preds_refine = [self.points2bbox(pts_pred_refine, y_first=False) for pts_pred_refine in pts_preds_refine]
         num_levels = len(cls_scores)
         mlvl_points = [
             self.point_generators[i].grid_points(cls_scores[i].size()[-2:],
