@@ -24,10 +24,8 @@ def single_gpu_test(model, data_loader, show=False):
     for i, data in enumerate(data_loader):
         with torch.no_grad():
             result = model(return_loss=False, rescale=not show, **data)
-        if isinstance(result[0], tuple):
-            results.append(result[0])
-        else:
-            results.append(result)
+        results.append(result)
+
         if show:
             model.module.show_result(data, result, dataset.img_norm_cfg)
 

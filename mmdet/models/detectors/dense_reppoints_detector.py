@@ -66,7 +66,11 @@ class DenseRepPointsMaskDetector(SingleStageDetector):
            for i, (det_bbox, det_pts, det_masks, det_labels) in enumerate(bbox_list)
         ][0]
 
-        return (bbox_results, segm_results), pts_results
+        if rescale:
+            return bbox_results, segm_results
+        else:
+            # store pts_result if we want visualization
+            return (bbox_results, segm_results), pts_results
 
     def get_seg_masks(self, pts_score, det_pts, det_bboxes, det_labels, test_cfg,
                       ori_shape, scale_factor, rescale=False):
