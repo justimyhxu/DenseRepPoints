@@ -47,7 +47,6 @@ model = dict(
         loss_mask_score_init=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
         loss_mask_weight_init=0.5,
         loss_mask_weight_refine=1.0,
-        use_chamfer=True,
         # feat_or_cor=True,
         # ps_offset_field=True,
         # share_score=True,
