@@ -1,160 +1,94 @@
+# Dense Reppoints: Representing Visual Objects with Dense Point Sets
 
-# MMDetection
+We have released the "Dense RepPoints" on [Arixv](https://arxiv.org/abs/1912.11473).
 
-**News**: We released the technical report on [ArXiv](https://arxiv.org/abs/1906.07155).
+Please checkout the [segmentation]() branch to reproduce the results in the "Dense Reppoints" on COCO object detection and instance segmentation. 
+
+
+# RepPoints: Point Set Representation for Object Detection
+
+By [Ze Yang](https://yangze.tech/), [Shaohui Liu](http://b1ueber2y.me/), and [Han Hu](https://ancientmooner.github.io/).
+
+We provide code support and configuration files to reproduce the results in the paper for
+["RepPoints: Point Set Representation for Object Detection"](https://arxiv.org/abs/1904.11490) on COCO object detection. Our code is based on [mmdetection](https://github.com/open-mmlab/mmdetection), which is a clean open-sourced project for benchmarking object detection methods. 
 
 ## Introduction
 
-The master branch works with **PyTorch 1.1** or higher.
+**RepPoints**, initially described in [arXiv](https://arxiv.org/abs/1904.11490), is a new representation method for visual objects, on which visual understanding tasks are typically centered. Visual object representation, aiming at both geometric description and appearance feature extraction, is conventionally achieved by `bounding box + RoIPool (RoIAlign)`. The bounding box representation is convenient to use; however, it provides only a rectangular localization of objects that lacks geometric precision and may consequently degrade feature quality. Our new representation, RepPoints, models objects by a `point set` instead of a `bounding box`, which learns to adaptively position themselves over an object in a manner that circumscribes the object’s `spatial extent` and enables `semantically aligned feature extraction`. This richer and more flexible representation maintains the convenience of bounding boxes while facilitating various visual understanding applications. This repo demonstrated the effectiveness of RepPoints for COCO object detection.
 
-mmdetection is an open source object detection toolbox based on PyTorch. It is
-a part of the open-mmlab project developed by [Multimedia Laboratory, CUHK](http://mmlab.ie.cuhk.edu.hk/).
+Another feature of this repo is the demonstration of an `anchor-free detector`, which can be as effective as state-of-the-art anchor-based detection methods. The anchor-free detector can utilize either `bounding box` or `RepPoints` as the basic object representation.
 
-![demo image](demo/coco_test_12510.jpg)
+<div align="center">
+  <img src="demo/reppoints.png" width="400px" />
+  <p>Learning RepPoints in Object Detection.</p>
+</div>
 
-### Major features
+## Usage
+a. Clone the repo:
+```
+git clone --recursive https://github.com/microsoft/RepPoints
+```
+b. Download the COCO detection dataset, copy RepPoints src into mmdetection and install mmdetection. 
+```
+sh ./init.sh
+```
+c. Run experiments with a speicific configuration file:
+```
+./mmdetection/tools/dist_train.sh ${path-to-cfg-file} ${num_gpu} --validate
+```
+We give one example here:
+```
+./mmdetection/tools/dist_train.sh ./configs/reppoints_moment_r101_fpn_2x_mt.py 8 --validate
+```
 
-- **Modular Design**
-
-  We decompose the detection framework into different components and one can easily construct a customized object detection framework by combining different modules.
-
-- **Support of multiple frameworks out of box**
-
-  The toolbox directly supports popular and contemporary detection frameworks, *e.g.* Faster RCNN, Mask RCNN, RetinaNet, etc.
-
-- **High efficiency**
-
-  All basic bbox and mask operations run on GPUs now. The training speed is faster than or comparable to other codebases, including [Detectron](https://github.com/facebookresearch/Detectron), [maskrcnn-benchmark](https://github.com/facebookresearch/maskrcnn-benchmark) and [SimpleDet](https://github.com/TuSimple/simpledet).
-
-- **State of the art**
-
-  The toolbox stems from the codebase developed by the *MMDet* team, who won [COCO Detection Challenge](http://cocodataset.org/#detection-leaderboard) in 2018, and we keep pushing it forward.
-
-Apart from MMDetection, we also released a library [mmcv](https://github.com/open-mmlab/mmcv) for computer vision research, which is heavily depended on by this toolbox.
-
-## License
-
-This project is released under the [Apache 2.0 license](LICENSE).
-
-## Updates
-
-v1.0rc0 (27/07/2019)
-- Implement lots of new methods and components (Mixed Precision Training, HTC, Libra R-CNN, Guided Anchoring, Empirical Attention, Mask Scoring R-CNN, Grid R-CNN (Plus), GHM, GCNet, FCOS, HRNet, Weight Standardization, etc.). Thank all collaborators!
-- Support two additional datasets: WIDER FACE and Cityscapes.
-- Refactoring for loss APIs and make it more flexible to adopt different losses and related hyper-parameters.
-- Speed up multi-gpu testing.
-- Integrate all compiling and installing in a single script.
-
-v0.6.0 (14/04/2019)
-- Up to 30% speedup compared to the model zoo.
-- Support both PyTorch stable and nightly version.
-- Replace NMS and SigmoidFocalLoss with Pytorch CUDA extensions.
-
-v0.6rc0(06/02/2019)
-- Migrate to PyTorch 1.0.
-
-v0.5.7 (06/02/2019)
-- Add support for Deformable ConvNet v2. (Many thanks to the authors and [@chengdazhi](https://github.com/chengdazhi))
-- This is the last release based on PyTorch 0.4.1.
-
-v0.5.6 (17/01/2019)
-- Add support for Group Normalization.
-- Unify RPNHead and single stage heads (RetinaHead, SSDHead) with AnchorHead.
-
-v0.5.5 (22/12/2018)
-- Add SSD for COCO and PASCAL VOC.
-- Add ResNeXt backbones and detection models.
-- Refactoring for Samplers/Assigners and add OHEM.
-- Add VOC dataset and evaluation scripts.
-
-v0.5.4 (27/11/2018)
-- Add SingleStageDetector and RetinaNet.
-
-v0.5.3 (26/11/2018)
-- Add Cascade R-CNN and Cascade Mask R-CNN.
-- Add support for Soft-NMS in config files.
-
-v0.5.2 (21/10/2018)
-- Add support for custom datasets.
-- Add a script to convert PASCAL VOC annotations to the expected format.
-
-v0.5.1 (20/10/2018)
-- Add BBoxAssigner and BBoxSampler, the `train_cfg` field in config files are restructured.
-- `ConvFCRoIHead` / `SharedFCRoIHead` are renamed to `ConvFCBBoxHead` / `SharedFCBBoxHead` for consistency.
-
-## Benchmark and model zoo
-
-Supported methods and backbones are shown in the below table.
-Results and models are available in the [Model zoo](MODEL_ZOO.md).
-
-|                    | ResNet   | ResNeXt  | SENet    | VGG      | HRNet |
-|--------------------|:--------:|:--------:|:--------:|:--------:|:-----:|
-| RPN                | ✓        | ✓        | ☐        | ✗        | ✓     |
-| Fast R-CNN         | ✓        | ✓        | ☐        | ✗        | ✓     |
-| Faster R-CNN       | ✓        | ✓        | ☐        | ✗        | ✓     |
-| Mask R-CNN         | ✓        | ✓        | ☐        | ✗        | ✓     |
-| Cascade R-CNN      | ✓        | ✓        | ☐        | ✗        | ✓     |
-| Cascade Mask R-CNN | ✓        | ✓        | ☐        | ✗        | ✓     |
-| SSD                | ✗        | ✗        | ✗        | ✓        | ✗     |
-| RetinaNet          | ✓        | ✓        | ☐        | ✗        | ✓     |
-| GHM                | ✓        | ✓        | ☐        | ✗        | ✓     |
-| Mask Scoring R-CNN | ✓        | ✓        | ☐        | ✗        | ✓     |
-| FCOS               | ✓        | ✓        | ☐        | ✗        | ✓     |
-| Double-Head R-CNN  | ✓        | ✓        | ☐        | ✗        | ✓     |
-| Grid R-CNN (Plus)  | ✓        | ✓        | ☐        | ✗        | ✓     |
-| Hybrid Task Cascade| ✓        | ✓        | ☐        | ✗        | ✓     |
-| Libra R-CNN        | ✓        | ✓        | ☐        | ✗        | ✓     |
-| Guided Anchoring   | ✓        | ✓        | ☐        | ✗        | ✓     |
-
-Other features
-- [x] DCNv2
-- [x] Group Normalization
-- [x] Weight Standardization
-- [x] OHEM
-- [x] Soft-NMS
-- [x] Generalized Attention
-- [x] GCNet
-- [x] Mixed Precision (FP16) Training
-
-
-## Installation
-
-Please refer to [INSTALL.md](INSTALL.md) for installation and dataset preparation.
-
-
-## Get Started
-
-Please see [GETTING_STARTED.md](GETTING_STARTED.md) for the basic usage of MMDetection.
-
-## Contributing
-
-We appreciate all contributions to improve MMDetection. Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for the contributing guideline.
-
-## Acknowledgement
-
-MMDetection is an open source project that is contributed by researchers and engineers from various colleges and companies. We appreciate all the contributors who implement their methods or add new features, as well as users who give valuable feedbacks.
-We wish that the toolbox and benchmark could serve the growing research community by providing a flexible toolkit to reimplement existing methods and develop their own new detectors.
-
-
-## Citation
-
-If you use this toolbox or benchmark in your research, please cite this project.
+## Citing RepPoints
 
 ```
-@article{mmdetection,
-  title   = {{MMDetection}: Open MMLab Detection Toolbox and Benchmark},
-  author  = {Chen, Kai and Wang, Jiaqi and Pang, Jiangmiao and Cao, Yuhang and
-             Xiong, Yu and Li, Xiaoxiao and Sun, Shuyang and Feng, Wansen and
-             Liu, Ziwei and Xu, Jiarui and Zhang, Zheng and Cheng, Dazhi and
-             Zhu, Chenchen and Cheng, Tianheng and Zhao, Qijie and Li, Buyu and
-             Lu, Xin and Zhu, Rui and Wu, Yue and Dai, Jifeng and Wang, Jingdong
-             and Shi, Jianping and Ouyang, Wanli and Loy, Chen Change and Lin, Dahua},
-  journal= {arXiv preprint arXiv:1906.07155},
+@inproceedings{yang2019reppoints,
+  title={RepPoints: Point Set Representation for Object Detection},
+  author={Yang, Ze and Liu, Shaohui and Hu, Han and Wang, Liwei and Lin, Stephen},
+  booktitle={The IEEE International Conference on Computer Vision (ICCV)},
+  month={Oct},
   year={2019}
 }
 ```
 
+## Results and models
 
-## Contact
+The results on COCO 2017val are shown in the table below.
 
-This repo is currently maintained by Kai Chen ([@hellock](http://github.com/hellock)), Jiangmiao Pang ([@OceanPang](https://github.com/OceanPang)), Jiaqi Wang ([@myownskyW7](https://github.com/myownskyW7)) and Yuhang Cao ([@yhcao6](https://github.com/yhcao6)).
+| Method | Backbone | Anchor | convert func | Lr schd | box AP | Download |
+| :----: | :------: | :-------: | :------: | :-----: | :----: | :------: |
+| BBox | R-50-FPN | single | -    | 1x      | 36.3|[model](https://drive.google.com/open?id=1TaVAFGZP2i7RwtlQjy3LBH1WI-YRH774) |
+| BBox | R-50-FPN | none     | -    | 1x      | 37.3| [model](https://drive.google.com/open?id=1hpfu-I7gtZnIb0NU2WvUvaZz_dm-THuZ) |
+| RepPoints | R-50-FPN | none     | partial MinMax | 1x      | 38.1| [model](https://drive.google.com/open?id=11zFtdKH-QGz_zH7vlcIih6FQAjV84CWc) |
+| RepPoints | R-50-FPN | none     | MinMax | 1x      | 38.2| [model](https://drive.google.com/open?id=1Cg9818dpkL-9qjmYdkhrY_BRiQFjV4xu)  |
+| RepPoints | R-50-FPN | none     | moment | 1x      | 38.2| [model](https://drive.google.com/open?id=1rQg-lE-5nuqO1bt6okeYkti4Q-EaBsu_) |
+| RepPoints | R-50-FPN | none     | moment | 2x      | 38.6| [model](https://drive.google.com/open?id=1TfR-5geVviKhRoXL9JP6cG3fkN2itbBU) |
+| RepPoints | R-50-FPN | none     | moment | 2x (ms train)   | 40.8| [model](https://drive.google.com/open?id=1oaHTIaP51oB5HJ6GWV3WYK19lMm9iJO6) |
+| RepPoints | R-50-FPN | none     | moment | 2x (ms train&ms test)   | 42.2|          |
+| RepPoints | R-101-FPN | none   | moment | 2x   | 40.3| [model](https://drive.google.com/open?id=1BAmGeUQ_zVQi2u7rgOuPQem2EjXDLgWm) |
+| RepPoints | R-101-FPN | none   | moment | 2x (ms train)   | 42.3| [model](https://drive.google.com/open?id=14Lf0p4fXElXaxFu8stk3hek3bY8tNENX) |
+| RepPoints | R-101-FPN | none   | moment | 2x (ms train&ms test)   | 44.1|          |
+| RepPoints | R-101-FPN-DCN | none   | moment | 2x   | 43.0| [model](https://drive.google.com/open?id=1hpptxpb4QtNuB-HnV5wHbDltPHhlYq4z) |
+| RepPoints | R-101-FPN-DCN | none   | moment | 2x (ms train)   | 44.8| [model](https://drive.google.com/open?id=1fsTckK99HYjOURwcFeHfy5JRRtsCajfX) |
+| RepPoints | R-101-FPN-DCN | none   | moment | 2x (ms train&ms test)   | 46.4|          |
+| RepPoints | X-101-FPN-DCN | none   | moment | 2x   | 44.5| [model](https://drive.google.com/open?id=1Y8vqaqU88-FEqqwl6Zb9exD5O246yrMR) |
+| RepPoints | X-101-FPN-DCN | none   | moment | 2x (ms train)   | 45.6| [model](https://drive.google.com/open?id=1nr9gcVWxzeakbfPC6ON9yvKOuLzj_RrJ) |
+| RepPoints | X-101-FPN-DCN | none   | moment | 2x (ms train&ms test)   | 46.8|          |
+
+**Notes:**
+
+- `R-xx`, `X-xx` denote the ResNet and ResNeXt architectures, respectively. 
+- `DCN` denotes replacing 3x3 conv with the 3x3 deformable convolution in `c3-c5` stages of backbone.
+- `none` in the `anchor` column means 2-d `center point` (x,y) is used to represent the initial object hypothesis. `single` denotes one 4-d anchor box (x,y,w,h) with IoU based label assign criterion is adopted. 
+- `moment`, `partial MinMax`, `MinMax` in the `convert func` column are three functions to convert a point set to a pseudo box.
+- `ms` denotes multi-scale training or multi-scale test.
+- Note the results here are slightly different from those reported in the paper, due to framework change. While the original paper uses an [MXNet](https://mxnet.apache.org/) implementation, we re-implement the method in [PyTorch](https://pytorch.org/) based on mmdetection.
+
+# Contributing
+This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.microsoft.com.
+
+When you submit a pull request, a CLA-bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
+
+This project has adopted the Microsoft Open Source Code of Conduct. For more information see the Code of Conduct FAQ or contact opencode@microsoft.com with any additional questions or comments.
