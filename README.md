@@ -5,28 +5,29 @@ We have released the "Dense RepPoints" on [Arixv](https://arxiv.org/abs/1912.114
 Please checkout the [segmentation]() branch to reproduce the results in the "Dense Reppoints" on COCO object detection and instance segmentation. 
 
 
-# RepPoints: Point Set Representation for Object Detection
-
-By [Ze Yang](https://yangze.tech/), [Shaohui Liu](http://b1ueber2y.me/), and [Han Hu](https://ancientmooner.github.io/).
-
-We provide code support and configuration files to reproduce the results in the paper for
-["RepPoints: Point Set Representation for Object Detection"](https://arxiv.org/abs/1904.11490) on COCO object detection. Our code is based on [mmdetection](https://github.com/open-mmlab/mmdetection), which is a clean open-sourced project for benchmarking object detection methods. 
-
 ## Introduction
 
-**RepPoints**, initially described in [arXiv](https://arxiv.org/abs/1904.11490), is a new representation method for visual objects, on which visual understanding tasks are typically centered. Visual object representation, aiming at both geometric description and appearance feature extraction, is conventionally achieved by `bounding box + RoIPool (RoIAlign)`. The bounding box representation is convenient to use; however, it provides only a rectangular localization of objects that lacks geometric precision and may consequently degrade feature quality. Our new representation, RepPoints, models objects by a `point set` instead of a `bounding box`, which learns to adaptively position themselves over an object in a manner that circumscribes the object’s `spatial extent` and enables `semantically aligned feature extraction`. This richer and more flexible representation maintains the convenience of bounding boxes while facilitating various visual understanding applications. This repo demonstrated the effectiveness of RepPoints for COCO object detection.
+""Dense Reppoints"", which is based on ""RepPoints", is presented for ﬂexible and detailed modeling of object appearance and geometry.
+In contrast to the coarse geometric localization and feature extraction of bounding boxes, 
+'Dense RepPoints' adaptively distributes a dense set of attributed points to semantically and geometrically signiﬁcant positions on an object, 
+providing informative cues for object analysis. 
+Techniques are developed to address challenges related to supervised training for dense point sets and making this extensive representation computationally practical. 
+The Dense RepPoints proves to perform significantly better than previous approaches or act as the ﬁrst effort in representing several irregular ﬁne-grained object shapes, 
+substantially enlarging the research breadth for object shape analysis. 
+In addition, this representation can represent multiple granularity of object structures, 
+in which more ﬁne-grained geometric supervision benefit the coarse object detection task by 1.6 mAP on COCO detection benchmark.
 
-Another feature of this repo is the demonstration of an `anchor-free detector`, which can be as effective as state-of-the-art anchor-based detection methods. The anchor-free detector can utilize either `bounding box` or `RepPoints` as the basic object representation.
 
 <div align="center">
-  <img src="demo/reppoints.png" width="400px" />
+  <img src="demo/dense_reppoints.png" width="400px" />
   <p>Learning RepPoints in Object Detection.</p>
 </div>
 
 ## Usage
-a. Clone the repo:
+a. Clone the repo and checkout segmentation branch:
 ```
 git clone --recursive https://github.com/microsoft/RepPoints
+git checkout segmentation
 ```
 b. Download the COCO detection dataset, copy RepPoints src into mmdetection and install mmdetection. 
 ```
@@ -38,17 +39,16 @@ c. Run experiments with a speicific configuration file:
 ```
 We give one example here:
 ```
-./mmdetection/tools/dist_train.sh ./configs/reppoints_moment_r101_fpn_2x_mt.py 8 --validate
+./mmdetection/tools/dist_train.sh ./configs/dense_reppoints_r50_225pts_grid_sparse9_partial_fpn_1x.py 8 --validate
 ```
 
-## Citing RepPoints
+## Citing Dense RepPoints
 
 ```
-@inproceedings{yang2019reppoints,
-  title={RepPoints: Point Set Representation for Object Detection},
-  author={Yang, Ze and Liu, Shaohui and Hu, Han and Wang, Liwei and Lin, Stephen},
-  booktitle={The IEEE International Conference on Computer Vision (ICCV)},
-  month={Oct},
+@article{yang2019dense,
+  title={Dense reppoints: Representing visual objects with dense point sets},
+  author={Yang, Ze and Xu, Yinghao and Xue, Han and Zhang, Zheng and Urtasun, Raquel and Wang, Liwei and Lin, Stephen and Hu, Han},
+  journal={arXiv preprint arXiv:1912.11473},
   year={2019}
 }
 ```
@@ -57,25 +57,10 @@ We give one example here:
 
 The results on COCO 2017val are shown in the table below.
 
-| Method | Backbone | Anchor | convert func | Lr schd | box AP | Download |
-| :----: | :------: | :-------: | :------: | :-----: | :----: | :------: |
-| BBox | R-50-FPN | single | -    | 1x      | 36.3|[model](https://drive.google.com/open?id=1TaVAFGZP2i7RwtlQjy3LBH1WI-YRH774) |
-| BBox | R-50-FPN | none     | -    | 1x      | 37.3| [model](https://drive.google.com/open?id=1hpfu-I7gtZnIb0NU2WvUvaZz_dm-THuZ) |
-| RepPoints | R-50-FPN | none     | partial MinMax | 1x      | 38.1| [model](https://drive.google.com/open?id=11zFtdKH-QGz_zH7vlcIih6FQAjV84CWc) |
-| RepPoints | R-50-FPN | none     | MinMax | 1x      | 38.2| [model](https://drive.google.com/open?id=1Cg9818dpkL-9qjmYdkhrY_BRiQFjV4xu)  |
-| RepPoints | R-50-FPN | none     | moment | 1x      | 38.2| [model](https://drive.google.com/open?id=1rQg-lE-5nuqO1bt6okeYkti4Q-EaBsu_) |
-| RepPoints | R-50-FPN | none     | moment | 2x      | 38.6| [model](https://drive.google.com/open?id=1TfR-5geVviKhRoXL9JP6cG3fkN2itbBU) |
-| RepPoints | R-50-FPN | none     | moment | 2x (ms train)   | 40.8| [model](https://drive.google.com/open?id=1oaHTIaP51oB5HJ6GWV3WYK19lMm9iJO6) |
-| RepPoints | R-50-FPN | none     | moment | 2x (ms train&ms test)   | 42.2|          |
-| RepPoints | R-101-FPN | none   | moment | 2x   | 40.3| [model](https://drive.google.com/open?id=1BAmGeUQ_zVQi2u7rgOuPQem2EjXDLgWm) |
-| RepPoints | R-101-FPN | none   | moment | 2x (ms train)   | 42.3| [model](https://drive.google.com/open?id=14Lf0p4fXElXaxFu8stk3hek3bY8tNENX) |
-| RepPoints | R-101-FPN | none   | moment | 2x (ms train&ms test)   | 44.1|          |
-| RepPoints | R-101-FPN-DCN | none   | moment | 2x   | 43.0| [model](https://drive.google.com/open?id=1hpptxpb4QtNuB-HnV5wHbDltPHhlYq4z) |
-| RepPoints | R-101-FPN-DCN | none   | moment | 2x (ms train)   | 44.8| [model](https://drive.google.com/open?id=1fsTckK99HYjOURwcFeHfy5JRRtsCajfX) |
-| RepPoints | R-101-FPN-DCN | none   | moment | 2x (ms train&ms test)   | 46.4|          |
-| RepPoints | X-101-FPN-DCN | none   | moment | 2x   | 44.5| [model](https://drive.google.com/open?id=1Y8vqaqU88-FEqqwl6Zb9exD5O246yrMR) |
-| RepPoints | X-101-FPN-DCN | none   | moment | 2x (ms train)   | 45.6| [model](https://drive.google.com/open?id=1nr9gcVWxzeakbfPC6ON9yvKOuLzj_RrJ) |
-| RepPoints | X-101-FPN-DCN | none   | moment | 2x (ms train&ms test)   | 46.8|          |
+| Method | Backbone | Anchor | convert func | Lr schd | box AP | mask AP | Download |
+| :----: | :------: | :-------: | :------: | :-----: | :----: | :------: | :------: |
+| Dense RepPoints | R-50-FPN | none     | partial MinMax | 1x | 39.0| 29.2 | [model]() |
+
 
 **Notes:**
 
