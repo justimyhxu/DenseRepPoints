@@ -1,13 +1,8 @@
 # Dense Reppoints: Representing Visual Objects with Dense Point Sets
 
-We have released the "Dense RepPoints" on [Arixv](https://arxiv.org/abs/1912.11473).
-
-Please checkout the [segmentation]() branch to reproduce the results in the "Dense Reppoints" on COCO object detection and instance segmentation. 
-
-
 ## Introduction
 
-""Dense Reppoints"", which is based on ""RepPoints", is presented for ﬂexible and detailed modeling of object appearance and geometry.
+"Dense Reppoints", which is based on "RepPoints", is presented for ﬂexible and detailed modeling of object appearance and geometry.
 In contrast to the coarse geometric localization and feature extraction of bounding boxes, 
 'Dense RepPoints' adaptively distributes a dense set of attributed points to semantically and geometrically signiﬁcant positions on an object, 
 providing informative cues for object analysis. 
