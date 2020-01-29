@@ -4,6 +4,16 @@ We have released the "Dense RepPoints" on [Arixv](https://arxiv.org/abs/1912.114
 
 Please checkout the [segmentation]() branch to reproduce the results in the "Dense Reppoints" on COCO object detection and instance segmentation. 
 
+## Citing Dense RepPoints
+
+```
+@article{yang2019dense,
+  title={Dense reppoints: Representing visual objects with dense point sets},
+  author={Yang, Ze and Xu, Yinghao and Xue, Han and Zhang, Zheng and Urtasun, Raquel and Wang, Liwei and Lin, Stephen and Hu, Han},
+  journal={arXiv preprint arXiv:1912.11473},
+  year={2019}
+}
+```
 
 # RepPoints: Point Set Representation for Object Detection
 
