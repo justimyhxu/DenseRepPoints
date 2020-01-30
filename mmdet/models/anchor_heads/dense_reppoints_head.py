@@ -202,8 +202,8 @@ class DenseRepPointsMaskHead(nn.Module):
             bbox = torch.cat([bbox_left, bbox_up, bbox_right, bbox_bottom],
                              dim=1)
         elif self.transform_method == 'partial_minmax':
-            pts_y = pts_y[:, :4, ...]
-            pts_x = pts_x[:, :4, ...]
+            pts_y = pts_y[:, :126, ...]
+            pts_x = pts_x[:, :126, ...]
             bbox_left = pts_x.min(dim=1, keepdim=True)[0]
             bbox_right = pts_x.max(dim=1, keepdim=True)[0]
             bbox_up = pts_y.min(dim=1, keepdim=True)[0]
