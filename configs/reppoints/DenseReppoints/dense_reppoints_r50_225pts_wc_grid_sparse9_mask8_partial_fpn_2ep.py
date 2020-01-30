@@ -141,7 +141,7 @@ lr_config = dict(
     step=[20000, 26000])
 
 checkpoint_config = dict(interval=1)
-evaluation = dict(eval_epochs=(1, 2, 8, 9, 11, 12))
+# evaluation = dict(eval_epochs=(1, 2, 8, 9, 11, 12))
 # yapf:disable
 log_config = dict(
     interval=100,
