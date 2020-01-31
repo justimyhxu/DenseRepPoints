@@ -22,7 +22,11 @@ class DenseRepPointsMaskDetector(SingleStageDetector):
                  test_cfg=None,
                  pretrained=None):
         super(DenseRepPointsMaskDetector, self).__init__(backbone, neck, bbox_head, train_cfg,
-                                                test_cfg, pretrained)
+                                                         test_cfg, pretrained)
+
+        @property
+        def with_mask(self):
+            return True
 
     def forward_train(self,
                       img,
@@ -61,9 +65,9 @@ class DenseRepPointsMaskDetector(SingleStageDetector):
             pts2result(det_points, det_cls_labels, self.bbox_head.num_classes)
         ][0]
         segm_results = [
-           self.get_seg_masks(det_masks[:, :-1], det_pts[:, :-1], det_bbox, det_labels, self.test_cfg,
-                                       ori_shape, scale_factor, rescale)
-           for i, (det_bbox, det_pts, det_masks, det_labels) in enumerate(bbox_list)
+            self.get_seg_masks(det_masks[:, :-1], det_pts[:, :-1], det_bbox, det_labels, self.test_cfg,
+                               ori_shape, scale_factor, rescale)
+            for i, (det_bbox, det_pts, det_masks, det_labels) in enumerate(bbox_list)
         ][0]
 
         if rescale:
@@ -203,6 +207,7 @@ def pts2result(pts, labels, num_classes):
         pts = pts.cpu().numpy()
         labels = labels.cpu().numpy()
         return [pts[labels == i, :] for i in range(num_classes - 1)]
+
 
 def masks2result(masks, labels, num_classes):
     if masks.shape[0] == 0:
