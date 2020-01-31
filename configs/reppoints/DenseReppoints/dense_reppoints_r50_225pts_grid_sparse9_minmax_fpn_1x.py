@@ -47,7 +47,6 @@ model = dict(
         loss_mask_score_init=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
         loss_mask_weight_init=0.5,
         loss_mask_weight_refine=1.0,
-        use_chamfer=True,
         # feat_or_cor=True,
         # ps_offset_field=True,
         # share_score=True,
@@ -139,7 +138,6 @@ lr_config = dict(
     warmup_ratio=1.0 / 3,
     step=[8, 11])
 checkpoint_config = dict(interval=1)
-evaluation = dict(eval_epochs=(2, 8, 9, 11, 12))
 # yapf:disable
 log_config = dict(
     interval=100,
@@ -153,7 +151,7 @@ total_epochs = 12
 device_ids = range(8)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/dense_reppoints_r50_225pts_wc_grid_sparse9_mask8_minmax_fpn_1x'
+work_dir = './work_dirs/dense_reppoints_r50_225pts_grid_sparse9_minmax_fpn_1x'
 load_from = None
 resume_from = None
 auto_resume = True
